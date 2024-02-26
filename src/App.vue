@@ -1,49 +1,46 @@
 <template>
-  <h1 class="title">翻譯</h1>
-  <div id="chatbox"></div>
-  <label for="source_lang">source_lang</label>
-  <select
-    name="source_lang"
-    id="source_lang"
-    v-model="source_key"
-    @change="getVal(source_key, 'src')"
-  >
-    <option :value="item.key" v-for="item in source" :key="item">
-      {{ item.key }}
-    </option>
-  </select>
-  <label for="target_lang">target_lang</label>
-  <select
-    name="target_lang"
-    id="target_lang"
-    v-model="target_key"
-    @change="getVal(target_key, 'tar')"
-  >
-    <option :value="item.key" v-for="item in target" :key="item">
-      {{ item.key }}
-    </option>
-  </select>
-  <br />
-  <input
-    type="text"
-    name="enterQst"
-    id="enterQst"
-    v-model="chatQst"
-    placeholder="請輸入文字"
-    @keyup.enter="goTranslate()"
-  />
-  <img
-    class="go-translate"
-    src="/img/enter.svg"
-    alt="enter"
-    @click="goTranslate()"
-  />
-  <!-- <button @click="getQst()">測試</button> -->
+  <h1 class="title">Translator</h1>
+  <section id="chatbox"></section>
+  <section class="lang-selection">
+    <select
+      name="source-lang"
+      class="lang"
+      v-model="source_key"
+      @change="getVal(source_key, 'src')"
+    >
+      <option :value="item.key" v-for="item in source" :key="item">
+        {{ item.key }}
+      </option>
+    </select>
+    <p class="direction">⭢</p>
+    <select
+      name="target-lang"
+      class="lang"
+      v-model="target_key"
+      @change="getVal(target_key, 'tar')"
+    >
+      <option :value="item.key" v-for="item in target" :key="item">
+        {{ item.key }}
+      </option>
+    </select>
+  </section>
+  <section class="enter-Qst">
+    <textarea
+      id="enter-text"
+      v-model="chatQst"
+      placeholder="Please enter text"
+      @keyup.enter="goTranslate()"
+      rows="1"
+    >
+    </textarea>
+    <button class="btn-enter" @click="goTranslate()">➤</button>
+  </section>
 </template>
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import axios from "axios";
 const chatQst = ref("");
+const textarea = ref("");
 const source = ref();
 const source_key = ref("Mandarin Chinese (Traditional)");
 const source_val = ref("cmn_Hant");
@@ -52,7 +49,7 @@ const target_key = ref("English");
 const target_val = ref("eng");
 const chatAns = ref("");
 
-//取得lang data
+//get lang data
 const getData = async () => {
   try {
     const response = await axios.post("/json/data.json");
@@ -66,17 +63,27 @@ onMounted(() => {
   getData();
 });
 
-//取得 data val
+// auto textarea
+const resizeTextarea = () => {
+  const textarea = document.getElementById("enter-text");
+  if (textarea) {
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+  }
+};
+watch(chatQst, () => {
+  resizeTextarea();
+});
+
+//get data val
 const getVal = (val, key) => {
   if (key === "src") {
     const idx = source.value.findIndex((item) => item.key === val);
     source_val.value = source.value[idx].val;
-    console.log(source_val.value);
   }
   if (key === "tar") {
     const idx = target.value.findIndex((item) => item.key === val);
     target_val.value = target.value[idx].val;
-    console.log(target_val.value);
   }
 };
 
@@ -85,7 +92,7 @@ const goTranslate = async () => {
   if (chatQst.value === "" || chatQst.value === null) return;
   const newParagraph = document.createElement("p");
   newParagraph.className = "chatQ";
-  newParagraph.textContent = "Q：" + chatQst.value;
+  newParagraph.textContent = chatQst.value;
   document.getElementById("chatbox").appendChild(newParagraph);
   try {
     const response = await axios.post(
@@ -104,48 +111,82 @@ const goTranslate = async () => {
     chatAns.value = response.data.translated_text;
     const newParagraph = document.createElement("p");
     newParagraph.className = "chatA";
-    newParagraph.textContent = "A：" + chatAns.value;
-    document.getElementById("chatox").appendChild(newParagraph);
+    newParagraph.textContent = chatAns.value;
+    document.getElementById("chatbox").appendChild(newParagraph);
+    document.getElementById("enter-text").value = null;
+    chatQst.value = "";
   } catch (error) {
     console.error("[請求失敗]:", error);
   }
 };
-
-//測試用
-// const getQst = () => {
-//   if (chatQst.value !== "" && chatQst.value !== null) {
-//     const newParagraph = document.createElement("p");
-//     newParagraph.className = "chatQ";
-//     newParagraph.textContent =
-//       "問題：" +
-//       chatQst.value +
-//       "  src：" +
-//       source_key.value +
-//       "  tar：" +
-//       target_key.value;
-//     document.getElementById("chat").appendChild(newParagraph);
-//   } else {
-//     window.alert("請輸入文字");
-//   }
-// };
 </script>
 <style lang="scss">
+.title {
+  margin: 48px 0 48px 40px;
+}
 #chatbox {
-  width: 500px;
+  width: 100%;
   height: 500px;
-  overflow-y: auto;
   border: 1px solid black;
+  overflow-y: auto;
+  .chatQ,
+  .chatA {
+    width: min(1000px, 80%);
+    margin: auto;
+    padding: 16px;
+    font-size: 20px;
+  }
+  .chatA {
+    background: rgb(255, 255, 255, 25%);
+    border: 1px solid white;
+    border-radius: 15px;
+  }
 }
-input {
-  width: 500px;
-  vertical-align: top;
+.lang-selection {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 24px;
+  .lang {
+    margin: 0 8px;
+    padding: 4px 8px;
+    border-radius: 15px;
+  }
+  .direction {
+    font-size: 28px;
+    font-weight: bold;
+  }
 }
-.go-translate {
-  border: 1px solid;
-  border-radius: 10px;
-  cursor: pointer;
-  &:hover {
-    background: pink;
+.enter-Qst {
+  width: min(1000px, 90%);
+  margin: auto;
+  position: relative;
+  #enter-text {
+    width: 100%;
+    margin: 0 8px;
+    padding: 16px 32px 16px 16px;
+    font-size: 20px;
+    color: white;
+    background: none;
+    border-radius: 15px;
+    resize: none;
+    overflow: hidden;
+  }
+  .btn-enter {
+    width: 32px;
+    height: 32px;
+    position: absolute;
+    right: 0;
+    bottom: 16.5px;
+    color: white;
+    background: none;
+    border: 1px solid white;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 1;
+    &:hover {
+      color: black;
+      background: white;
+    }
   }
 }
 </style>
