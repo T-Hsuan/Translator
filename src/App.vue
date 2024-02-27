@@ -12,7 +12,7 @@
         {{ item.key }}
       </option>
     </select>
-    <p class="direction">⭢</p>
+    <p class="direction">{{ direction }}</p>
     <select
       name="target-lang"
       class="lang"
@@ -24,117 +24,93 @@
       </option>
     </select>
   </section>
-  <section class="enter-Qst">
+  <section class="text-entering">
     <textarea
-      id="enter-text"
+      id="textbox"
       v-model="chatQst"
       placeholder="Please enter text"
-      @keyup.enter="goTranslate()"
+      @keyup.enter="textTranslate('chatbox', 'textbox')"
       rows="1"
     >
     </textarea>
-    <button class="btn-enter" @click="goTranslate()">➤</button>
+    <button class="btn-enter" @click="textTranslate('chatbox', 'textbox')">
+      ➤
+    </button>
   </section>
+  <button @click="test()">audio</button>
 </template>
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
-const chatQst = ref("");
-const textarea = ref("");
-const source = ref();
-const source_key = ref("Mandarin Chinese (Traditional)");
-const source_val = ref("cmn_Hant");
-const target = ref();
-const target_key = ref("English");
-const target_val = ref("eng");
-const chatAns = ref("");
+import { useDataStore } from "@/stores/data.js";
+import { useChatboxStore } from "@/stores/chatbox.js";
+import { useTranslateStore } from "@/stores/translate.js";
+import { storeToRefs } from "pinia";
+//[data]
+const useData = useDataStore();
+const { source, source_key, source_val, target, target_key, target_val } =
+  storeToRefs(useData);
+const getVal = (val, key) => useData.getVal(val, key);
 
-//get lang data
-const getData = async () => {
-  try {
-    const response = await axios.post("/json/data.json");
-    source.value = response.data.source;
-    target.value = response.data.target;
-  } catch (error) {
-    console.error("data請求失敗:", error);
-  }
-};
-onMounted(() => {
-  getData();
-});
-
-// auto textarea
+//[chatbox]
+const { chatQst, audio } = storeToRefs(useChatboxStore());
+//[translate]
+const useTranslate = useTranslateStore();
+const textTranslate = (id1, id2) => useTranslate.textTranslate(id1, id2);
+//*basic setting*
+//<language selection>
+const direction = ref(window.innerWidth >= 768 ? "⭢" : "⭣");
+//<text entering>:textarea auto size
 const resizeTextarea = () => {
-  const textarea = document.getElementById("enter-text");
+  const textarea = document.getElementById("textbox");
   if (textarea) {
     textarea.style.height = "auto";
     textarea.style.height = textarea.scrollHeight + "px";
   }
 };
-watch(chatQst, () => {
-  resizeTextarea();
+watch(chatQst, () => resizeTextarea());
+//<lang selection>:change direction
+addEventListener("resize", () => {
+  if (window.innerWidth >= 768) direction.value = "⭢";
+  else direction.value = "⭣";
 });
+const test = () => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "/test.wav", true);
+  xhr.responseType = "blob";
 
-//get data val
-const getVal = (val, key) => {
-  if (key === "src") {
-    const idx = source.value.findIndex((item) => item.key === val);
-    source_val.value = source.value[idx].val;
-  }
-  if (key === "tar") {
-    const idx = target.value.findIndex((item) => item.key === val);
-    target_val.value = target.value[idx].val;
-  }
-};
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      const blob = xhr.response;
+      // 现在您可以使用 blob 对象进行进一步的处理，比如创建 audio 元素
+      const audio = document.createElement("audio");
+      audio.src = URL.createObjectURL(blob);
+      audio.controls = true;
+      document.getElementById("chatbox").appendChild(audio);
+      console.log(blob);
+    } else {
+      console.error("无法获取文件");
+    }
+  };
 
-//translate starting
-const goTranslate = async () => {
-  if (chatQst.value === "" || chatQst.value === null) return;
-  const newParagraph = document.createElement("p");
-  newParagraph.className = "chatQ";
-  newParagraph.textContent = chatQst.value;
-  document.getElementById("chatbox").appendChild(newParagraph);
-  try {
-    const response = await axios.post(
-      "http://192.168.210.54:8080/translate",
-      {
-        text: chatQst.value,
-        source_lang: source_val.value,
-        target_lang: target_val.value,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    chatAns.value = response.data.translated_text;
-    const newParagraph = document.createElement("p");
-    newParagraph.className = "chatA";
-    newParagraph.textContent = chatAns.value;
-    document.getElementById("chatbox").appendChild(newParagraph);
-    document.getElementById("enter-text").value = null;
-    chatQst.value = "";
-  } catch (error) {
-    console.error("[請求失敗]:", error);
-  }
+  xhr.send();
 };
 </script>
 <style lang="scss">
 .title {
-  margin: 48px 0 48px 40px;
+  margin: clamp($sp3, 4vw, $sp6) 0 clamp($sp3, 4vw, $sp6)
+    clamp($sp2, 3.3vw, $sp5);
 }
 #chatbox {
   width: 100%;
-  height: 500px;
+  height: 60vh;
   border: 1px solid black;
   overflow-y: auto;
   .chatQ,
   .chatA {
     width: min(1000px, 80%);
     margin: auto;
-    padding: 16px;
-    font-size: 20px;
+    padding: clamp($sp1, 1.3vw, $sp2);
   }
   .chatA {
     background: rgb(255, 255, 255, 25%);
@@ -146,6 +122,9 @@ const goTranslate = async () => {
   display: flex;
   justify-content: center;
   margin: 16px 0 24px;
+  @media screen and (max-width: 767.9px) {
+    flex-direction: column;
+  }
   .lang {
     margin: 0 8px;
     padding: 4px 8px;
@@ -154,13 +133,14 @@ const goTranslate = async () => {
   .direction {
     font-size: 28px;
     font-weight: bold;
+    text-align: center;
   }
 }
-.enter-Qst {
+.text-entering {
   width: min(1000px, 90%);
   margin: auto;
   position: relative;
-  #enter-text {
+  #textbox {
     width: 100%;
     margin: 0 8px;
     padding: 16px 32px 16px 16px;
