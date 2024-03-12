@@ -96,7 +96,7 @@ const goTranslate = async () => {
   document.getElementById("chatbox").appendChild(newParagraph);
   try {
     const response = await axios.post(
-      "http://192.168.210.54:8080/translate",
+      "https://a854-150-116-161-157.ngrok-free.app/translate_text2speech",
       {
         text: chatQst.value,
         source_lang: source_val.value,
