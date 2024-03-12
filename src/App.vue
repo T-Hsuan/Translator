@@ -96,7 +96,7 @@ const goTranslate = async () => {
   document.getElementById("chatbox").appendChild(newParagraph);
   try {
     const response = await axios.post(
-      "https://a854-150-116-161-157.ngrok-free.app/translate_text2speech",
+      "https://f9f3-150-116-161-157.ngrok-free.app/chat_text2text",
       {
         text: chatQst.value,
         source_lang: source_val.value,
@@ -108,7 +108,7 @@ const goTranslate = async () => {
         },
       }
     );
-    chatAns.value = response.data.translated_text;
+    chatAns.value = response.data.responded_text;
     const newParagraph = document.createElement("p");
     newParagraph.className = "chatA";
     newParagraph.textContent = chatAns.value;
