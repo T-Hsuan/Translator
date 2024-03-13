@@ -1,0 +1,41 @@
+button {
+  padding: 4px;
+  background: none;
+  border: 1px solid;
+  border-radius: 5px;
+}
+.btn-enter {
+  width: 32px;
+  height: 32px;
+  position: absolute;
+  right: 8px;
+  bottom: 16.5px;
+  color: white;
+  background: none;
+  border: 1px solid white;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 1;
+
+  &:hover {
+    color: black;
+    background: white;
+  }
+}
+
+.btn-record {
+  width: 32px;
+  height: 32px;
+  position: absolute;
+  right: 48px;
+  bottom: 16.5px;
+  background: none;
+  border: 1px solid white;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 1;
+
+  &:hover {
+    background: white;
+  }
+}
