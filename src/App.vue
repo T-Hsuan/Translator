@@ -14,38 +14,76 @@
       </option>
     </select>
   </section>
-  <section class="text-entering">
+  <section class="input-block">
     <textarea id="textbox" v-model="chatQst" placeholder="Please enter text"
-      @keyup.enter="textTranslate('chatbox', 'textbox')" rows="1">
+      @keyup.enter="textConversion(chatQst, source_val, target_val)" rows="1">
     </textarea>
-    <button class="btn-enter" @click="textTranslate('chatbox', 'textbox')">
+    <button class="btn-enter" @click="textConversion(chatQst, source_val, target_val)">
       ➤
     </button>
-    <button class="btn-record" @click="getRecording()">🎙️</button>
+    <button class="btn-record" @click="recordClick()" v-if="!record">🎙️</button>
+  </section>
+  <section class="recording-block" v-if="record">
+    <div class="recording" v-if="!audioSend">
+      <p>recording...</p>
+      <button class="btn-stop" @click="recordClick()">🟥</button>
+    </div>
+    <div class="recording-ended" v-else>
+      <button class="btn-send" @click="AudioConversion()">send recording!</button>
+      <button class="btn-delete" @click="audioDelete()">🗑️</button>
+    </div>
   </section>
 </template>
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import axios from "axios";
-import { useDataStore } from "@/stores/data.js";
-import { useChatboxStore } from "@/stores/chatbox.js";
-import { useTranslateStore } from "@/stores/translate.js";
+import { useDataStore } from "@/stores/langData.js";
+import { useChatboxStore } from "@/stores/chatBox.js";
+// import { useConversionStore } from "@/stores/conversion.js";
 import { storeToRefs } from "pinia";
+import { textConversion, audioConversion } from "@/assets/js/conversion.js";
 //[data]
-const useData = useDataStore();
+const LangData = useDataStore();
 const { source, source_key, source_val, target, target_key, target_val } =
-  storeToRefs(useData);
-const getVal = (val, key) => useData.getVal(val, key);
-
+  storeToRefs(LangData);
+const getVal = (val, key) => LangData.getVal(val, key);
 //[chatbox]
-const { chatQst, audio } = storeToRefs(useChatboxStore());
-//[translate]
-const useTranslate = useTranslateStore();
-const textTranslate = (id1, id2) => useTranslate.textTranslate(id1, id2);
-//*basic setting*
+const chatQst = ref(null);
+const chatData = useChatboxStore();
+const { audioBlob } = storeToRefs(chatData);
+
+//<recording block>
+const record = ref(false);
+const audioSend = ref(false);
+const recordClick = () => {
+  if (!record.value) {
+    record.value = true;
+    setTimeout(() => {
+      document.getElementsByClassName("recording-block")[0].scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100);
+  }
+  chatData.getAudio();
+  setTimeout(() => {
+    if (audioBlob.value) audioSend.value = true;
+  }, 100);
+};
+const audioDelete = () => {
+  record.value = false;
+  audioSend.value = false;
+  audioBlob.value = null;
+  const chatQ = document.querySelector(".recording-block").querySelector("audio");
+  if (chatQ) document.querySelector(".recording-block").removeChild(chatQ);
+};
+const AudioConversion = () => {
+  audioConversion(audioBlob.value, target_val.value);
+  audioDelete();
+};
+
+//*basic setting*--------------------------------------------------------------
 //<language selection>
 const direction = ref(window.innerWidth >= 650 ? "⭢" : "⭣");
-//<text entering>:textarea auto size
+
+//<input block>:textarea auto size
 const resizeTextarea = () => {
   const textarea = document.getElementById("textbox");
   if (textarea) {
@@ -54,79 +92,18 @@ const resizeTextarea = () => {
   }
 };
 watch(chatQst, () => resizeTextarea());
+
 //<lang selection>:change direction
-addEventListener("resize", () => {
+window.onresize = () => {
   if (window.innerWidth >= 650) direction.value = "⭢";
   else direction.value = "⭣";
-});
-const test = () => {
-  const xhr = new XMLHttpRequest();
-  xhr.open("GET", "/test.wav", true);
-  xhr.responseType = "blob";
-  xhr.onload = function () {
-    if (xhr.status === 200) {
-      const blob = xhr.response;
-      // 现在您可以使用 blob 对象进行进一步的处理，比如创建 audio 元素
-      const audio = document.createElement("audio");
-      audio.src = URL.createObjectURL(blob);
-      audio.controls = true;
-      document.getElementById("chatbox").appendChild(audio);
-      console.log(blob);
-    } else {
-      console.error("无法获取文件");
-    }
-  };
-  xhr.send();
 };
-const mediaRecorder = ref(null);
-const audioChunks = ref([]);
-const getRecording = () => {
-  const constraints = { audio: true };
-  if (navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-        console.log("Authorization successful! Starting audio recording");
-        if (!mediaRecorder.value) mediaRecorder.value = new MediaRecorder(stream);
-        console.log(mediaRecorder.value);
-        mediaRecorder.value.ondataavailable = (e) => {
-          audioChunks.value.push(e.data);
-          console.log(audioChunks.value);
-          console.log("Data available");
-        };
-        mediaRecorder.value.onstop = (e) => {
-          console.log("Recording stopped");
-          const audioBlob = new Blob(audioChunks.value, { type: 'audio/wav' });
-          const audio = document.createElement("audio");
-          audio.src = URL.createObjectURL(audioBlob);
-          audio.controls = true;
-          document.getElementById("chatbox").appendChild(audio);
-          mediaRecorder.value = null;
-          audioChunks.value.length = 0;
-        };
-
-        if (mediaRecorder.value.state === "inactive") {
-          mediaRecorder.value.start();
-          console.log("Recording...");
-        } else if (mediaRecorder.value.state === "recording") {
-
-          mediaRecorder.value.stop();
-          console.log("Recording ended");
-        }
-        console.log("Recorder state:", mediaRecorder.value.state);
-      })
-      .catch(error => {
-        console.error("Authorization failed!", error);
-      });
-  } else {
-    console.error("Browser does not support getUserMedia");
-  }
-};
-
 </script>
 <style lang="scss">
+@import "@/assets/scss/button.scss";
+
 .title {
   margin: clamp($sp3, 4vw, $sp6) 0 clamp($sp3, 4vw, $sp6) clamp($sp2, 3.3vw, $sp5);
-  font-family: "Madimi One", sans-serif;
 }
 
 #chatbox {
@@ -175,16 +152,16 @@ const getRecording = () => {
   }
 }
 
-.text-entering {
+.input-block {
   width: min(1000px, 90%);
   margin: auto;
   position: relative;
 
   #textbox {
     width: 100%;
-    margin: 0 8px;
+    margin: auto;
     padding: 16px 32px 16px 16px;
-    font-family: "Madimi One", sans-serif;
+    font-family: Arial;
     font-size: 20px;
     color: white;
     background: none;
@@ -192,43 +169,21 @@ const getRecording = () => {
     resize: none;
     overflow: hidden;
   }
+}
 
-  .btn-enter {
-    width: 32px;
-    height: 32px;
-    position: absolute;
-    right: 0;
-    bottom: 16.5px;
-    color: white;
-    background: none;
-    border: 1px solid white;
-    border-radius: 10px;
-    cursor: pointer;
-    z-index: 1;
+.recording-block {
+  width: 100%;
+  min-height: 100px;
+  margin: auto;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: black;
+  background: white;
 
-    &:hover {
-      color: black;
-      background: white;
-    }
-  }
-
-  .btn-record {
-    width: 32px;
-    height: 32px;
-    position: absolute;
-    right: 40px;
-    bottom: 16.5px;
-    color: white;
-    background: none;
-    border: 1px solid white;
-    border-radius: 10px;
-    cursor: pointer;
-    z-index: 1;
-
-    &:hover {
-      color: black;
-      background: white;
-    }
+  .recording {
+    text-align: center;
   }
 }
 </style>

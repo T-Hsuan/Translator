@@ -2,13 +2,14 @@ import { defineStore } from "pinia";
 import { ref, onMounted } from "vue";
 import axios from "axios";
 
-export const useDataStore = defineStore("data", () => {
+export const useDataStore = defineStore("languageData", () => {
   const source = ref();
   const source_key = ref("Mandarin Chinese (Traditional)");
   const source_val = ref("cmn_Hant");
   const target = ref();
   const target_key = ref("English");
   const target_val = ref("eng");
+
   const getData = async () => {
     try {
       const response = await axios.post("/json/data.json");
@@ -21,7 +22,7 @@ export const useDataStore = defineStore("data", () => {
   onMounted(() => {
     getData();
   });
-  //[text entering]:get data val
+  //[input block]:get data val
   const getVal = (val, key) => {
     if (key === "src") {
       const idx = source.value.findIndex((item) => item.key === val);
