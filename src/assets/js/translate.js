@@ -3,7 +3,7 @@ import { ref } from "vue";
 
 const API_URL = "https://f9f3-150-116-161-157.ngrok-free.app";
 
-export const textConversion = async (chatQst, src_val, tar_val) => {
+export const textTranslated = async (chatQst, src_val, tar_val) => {
   if (chatQst === "" || chatQst === null || chatQst === undefined) return;
   const Qst = document.createElement("p");
   Qst.className = "chatQ chatQ_text";
@@ -47,7 +47,7 @@ const Base64ToBlob = (base64) => {
   return new Blob([uint8Array], { type: "audio/wav" });
 };
 
-export const audioConversion = async (audioBlob, tar_val) => {
+export const audioTranslated = async (audioBlob, tar_val) => {
   if (audioBlob) {
     const Qst = document.createElement("audio");
     Qst.className = "chatQ chatQ_audio";

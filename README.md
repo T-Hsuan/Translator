@@ -9,6 +9,12 @@
 
 功能設計:可依照使用者需求選擇問答呈現方式
 1. 聊天
+    1. 文字轉文字 chat_text2text
+    2. 文字轉文字&語音 chat_text2speech
+    3. 文字轉語音
+    4. 語音轉文字 chat_speech2text
+    5. 語音轉文字&語音 chat_speech2speech
+    6. 語音轉語音 
 2. 翻譯
   1. 文字轉文字 translate_text
   2. 文字轉文字&語音 translate_text2speech
@@ -19,4 +25,5 @@
 
 
 - [lang data](src/stores/langData.js)
-- [api function](src/assets/js/conversion.js)
+- [api function-translate](src/assets/js/translate.js)
+- [api function-chat](src/assets/js/chat.js)
